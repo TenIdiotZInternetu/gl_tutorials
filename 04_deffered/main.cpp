@@ -76,6 +76,7 @@ int main() {
 	}
 
 	try {
+		ssao::init();
 		auto window = Window();
 		Config config;
 		Camera camera(window.aspectRatio());
@@ -108,12 +109,12 @@ int main() {
 
 		renderer.initialize(window.size()[0], window.size()[1]);
 		window.runLoop([&] {
-			// renderer.shadowMapPass(scenes[config.currentSceneIdx], light);
+			renderer.shadowMapPass(scenes[config.currentSceneIdx], light);
 			// renderer.shadowMapPass(scenes[config.currentSceneIdx], camera);
 
 			renderer.clear();
 			renderer.geometryPass(scenes[config.currentSceneIdx], camera, RenderOptions{"solid"});
-			renderer.compositingPass(light);
+			renderer.compositingPass(light, camera);
 		});
 	} catch (ShaderCompilationError &exc) {
 		std::cerr

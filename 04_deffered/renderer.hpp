@@ -3,11 +3,13 @@
 #include <vector>
 
 #include "camera.hpp"
+#include "error_handling.hpp"
 #include "spotlight.hpp"
 #include "framebuffer.hpp"
 #include "shadowmap_framebuffer.hpp"
 #include "ogl_material_factory.hpp"
 #include "ogl_geometry_factory.hpp"
+#include "ssao.hpp"
 
 class QuadRenderer {
 public:
@@ -68,7 +70,7 @@ public:
 			{ "u_normal", TextureInfo("diffuse", mFramebuffer->getColorAttachment(1)) },
 			{ "u_position", TextureInfo("diffuse", mFramebuffer->getColorAttachment(2)) },
 			// { "u_shadowMap", TextureInfo("shadowMap", mShadowmapFramebuffer->getDepthMap()) },
-			// { "u_shadowMap", TextureInfo("shadowMap", mShadowmapFramebuffer->getColorAttachment(0)) },
+			{ "u_shadowMap", TextureInfo("shadowMap", mShadowmapFramebuffer->getColorAttachment(0)) },
 		};
 	}
 
@@ -120,13 +122,20 @@ public:
 		mFramebuffer->unbind();
 	}
 
-	template<typename TLight>
-	void compositingPass(const TLight &aLight) {
+	template<typename TLight, typename TCamera>
+	void compositingPass(const TLight &aLight, const TCamera &aCamera) {
 		GL_CHECK(glDisable(GL_DEPTH_TEST));
 		GL_CHECK(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
+
 		mCompositingParameters["u_lightPos"] = aLight.getPosition();
-		mCompositingParameters["u_lightMat"] = aLight.getViewMatrix();
+		mCompositingParameters["u_lightViewMat"] = aLight.getViewMatrix();
 		mCompositingParameters["u_lightProjMat"] = aLight.getProjectionMatrix();
+		
+		mCompositingParameters["u_viewMat"] = aCamera.getViewMatrix();
+		mCompositingParameters["u_projMat"] = aCamera.getProjectionMatrix();
+
+		GL_CHECK(glUniform3fv(128, ssao::SAMPLES_COUNT, glm::value_ptr(ssao::kernel()[0])));
+
 		mQuadRenderer.render(*mCompositingShader, mCompositingParameters);
 	}
 
@@ -169,8 +178,6 @@ public:
 			geometry.bind();
 			geometry.draw();
 		}
-
-
 
 		mShadowmapFramebuffer->unbind();
 	}

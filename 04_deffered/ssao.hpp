@@ -11,22 +11,21 @@ public:
 
     static const kernel_t& kernel() { return _baseKernel; }
 
+    static void init() {
+        _pointsDistribution = std::normal_distribution<float>();
+        _seed = std::random_device()();
+        _rngGenerator = std::mt19937(_seed);
+        _pointsDistribution = std::normal_distribution<float>(0, 0.3);
+    
+        _baseKernel = createSamplePoints();
+    }
 private:
     static size_t _seed;
     static std::mt19937 _rngGenerator;
     static std::normal_distribution<float> _pointsDistribution;
-    static std::uniform_real_distribution<float> _rotationDistribution;
 
     static kernel_t _baseKernel;
 
-    static void init() {
-        _seed = std::random_device()();
-        _rngGenerator = std::mt19937(_seed);
-        _pointsDistribution = std::normal_distribution<float>(0, 0.3);
-        _rotationDistribution = std::uniform_real_distribution<float>(0, 2 * glm::pi<float>());
-
-        _baseKernel = createSamplePoints();
-    }
 
     static kernel_t createSamplePoints() {
         kernel_t points;
@@ -42,3 +41,8 @@ private:
         return points;
     }
 };
+
+size_t ssao::_seed;
+std::mt19937 ssao::_rngGenerator;
+std::normal_distribution<float> ssao::_pointsDistribution;
+ssao::kernel_t ssao::_baseKernel;
