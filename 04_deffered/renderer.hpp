@@ -68,7 +68,7 @@ public:
 			{ "u_normal", TextureInfo("diffuse", mFramebuffer->getColorAttachment(1)) },
 			{ "u_position", TextureInfo("diffuse", mFramebuffer->getColorAttachment(2)) },
 			// { "u_shadowMap", TextureInfo("shadowMap", mShadowmapFramebuffer->getDepthMap()) },
-			{ "u_shadowMap", TextureInfo("shadowMap", mShadowmapFramebuffer->getColorAttachment(0)) },
+			// { "u_shadowMap", TextureInfo("shadowMap", mShadowmapFramebuffer->getColorAttachment(0)) },
 		};
 	}
 
