@@ -26,7 +26,7 @@ protected:
 	IndexedBuffer mQuad;
 };
 
-inline std::vector<CADescription> getColorNormalPositionAttachments() {
+inline std::vector<CADescription> ColorNormalPositionDepth_Attachments() {
 	return {
 		{ GL_RGBA, GL_FLOAT, GL_RGBA32F },
 		// To store values outside the range [0,1] we need different internal format then normal GL_RGBA
@@ -99,7 +99,7 @@ public:
 
 		mPostprocessing.init(aWidth, aHeight);
 
-		mFramebuffer = std::make_unique<Framebuffer>(aWidth, aHeight, getColorNormalPositionAttachments());
+		mFramebuffer = std::make_unique<Framebuffer>(aWidth, aHeight, ColorNormalPositionDepth_Attachments());
 		mShadowmapFramebuffer = std::make_unique<Framebuffer>(mShadowMapSize.x, mShadowMapSize.y, getSingleColorAttachment());
 		// mShadowmapFramebuffer = std::make_unique<ShadowmapFramebuffer>(600, 600);
 		mCompositingParameters = {

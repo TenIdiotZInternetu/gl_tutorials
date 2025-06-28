@@ -46,10 +46,10 @@ void defineControls(Window& window, Camera& camera, MouseTracking& mouseTracking
 				camera.lookAt(glm::vec3());
 				break;
 			case GLFW_KEY_W:
-				camera.move(camera.getForwardVector() * MOVEMENT_STEP);
+				camera.move(-camera.getForwardVector() * MOVEMENT_STEP);
 				break;
 			case GLFW_KEY_S:
-				camera.move(-camera.getForwardVector() * MOVEMENT_STEP);
+				camera.move(camera.getForwardVector() * MOVEMENT_STEP);
 				break;
 			case GLFW_KEY_A:
 				camera.move(-camera.getRightVector() * MOVEMENT_STEP);
@@ -76,7 +76,6 @@ int main() {
 	}
 
 	try {
-		ssao::init();
 		auto window = Window();
 		Config config;
 		Camera camera(window.aspectRatio());
@@ -101,6 +100,8 @@ int main() {
 		};
 
 		Renderer renderer(materialFactory);
+		renderer.applySsao(ssao{});
+
 		window.onResize([&camera, &window, &renderer](int width, int height) {
 				camera.setAspectRatio(window.aspectRatio());
 				renderer.initialize(width, height);

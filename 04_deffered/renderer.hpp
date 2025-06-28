@@ -28,12 +28,13 @@ protected:
 	IndexedBuffer mQuad;
 };
 
-inline std::vector<CADescription> getColorNormalPositionAttachments() {
+inline std::vector<CADescription> ColorNormalPositionDepth_Attachments() {
 	return {
 		{ GL_RGBA, GL_FLOAT, GL_RGBA },
 		// To store values outside the range [0,1] we need different internal format then normal GL_RGBA
 		{ GL_RGBA, GL_FLOAT, GL_RGBA32F },
 		{ GL_RGBA, GL_FLOAT, GL_RGBA32F },
+		{ GL_RGBA, GL_FLOAT, GL_RGBA32F }
 	};
 }
 
@@ -62,7 +63,8 @@ public:
 		mHeight = aHeight;
 		GL_CHECK(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
 
-		mFramebuffer = std::make_unique<Framebuffer>(aWidth, aHeight, getColorNormalPositionAttachments());
+		mFramebuffer = std::make_unique<Framebuffer>(aWidth, aHeight, ColorNormalPositionDepth_Attachments());
+		mFramebuffer = std::make_unique<Framebuffer>(aWidth, aHeight, ColorNormalPositionDepth_Attachments());
 		mShadowmapFramebuffer = std::make_unique<Framebuffer>(600, 600, getSingleColorAttachment());
 		// mShadowmapFramebuffer = std::make_unique<ShadowmapFramebuffer>(600, 600);
 		mCompositingParameters = {
@@ -127,16 +129,21 @@ public:
 		GL_CHECK(glDisable(GL_DEPTH_TEST));
 		GL_CHECK(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
 
+		mDebugbuffer->bind();
+		mDebugbuffer->setDrawBuffers();
+		mCompositingShader->use();
+
 		mCompositingParameters["u_lightPos"] = aLight.getPosition();
 		mCompositingParameters["u_lightViewMat"] = aLight.getViewMatrix();
 		mCompositingParameters["u_lightProjMat"] = aLight.getProjectionMatrix();
-		
 		mCompositingParameters["u_viewMat"] = aCamera.getViewMatrix();
 		mCompositingParameters["u_projMat"] = aCamera.getProjectionMatrix();
 
-		GL_CHECK(glUniform3fv(128, ssao::SAMPLES_COUNT, glm::value_ptr(ssao::kernel()[0])));
+		GLint location = glGetUniformLocation(mCompositingShader->program.get(), "u_ssaoSamples");
+		GL_CHECK(glUniform3fv(location, ssao::SAMPLES_COUNT, glm::value_ptr(mSsaoKernel[0])));
 
 		mQuadRenderer.render(*mCompositingShader, mCompositingParameters);
+		mDebugbuffer->unbind();
 	}
 
 	template<typename TScene, typename TLight>
@@ -182,10 +189,15 @@ public:
 		mShadowmapFramebuffer->unbind();
 	}
 
+	void applySsao(const ssao& ssao) {
+		mSsaoKernel = ssao.kernel();
+	}
+
 protected:
 	int mWidth = 100;
 	int mHeight = 100;
 	std::unique_ptr<Framebuffer> mFramebuffer;
+	std::unique_ptr<Framebuffer> mDebugbuffer;
 	std::unique_ptr<Framebuffer> mShadowmapFramebuffer;
 	// std::unique_ptr<ShadowmapFramebuffer> mShadowmapFramebuffer;
 	MaterialParameterValues mCompositingParameters;
@@ -193,4 +205,5 @@ protected:
 	std::shared_ptr<OGLShaderProgram> mCompositingShader;
 	std::shared_ptr<OGLShaderProgram> mShadowMapShader;
 	OGLMaterialFactory &mMaterialFactory;
+	ssao::kernel_t mSsaoKernel;
 };

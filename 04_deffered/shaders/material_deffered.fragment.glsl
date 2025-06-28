@@ -18,6 +18,6 @@ out vec3 out_position;
 void main() {
 	out_color = texture(u_diffuseTexture, texCoords);
 	out_normal = normalize(normal);
-	out_position = position.xyz/position.w;
+	out_position = position.xyz;
 }
 
