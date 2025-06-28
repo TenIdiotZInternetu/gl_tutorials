@@ -18,12 +18,16 @@ private:
     int _screenHeight;
     int _attachementsCreated = 0;
 
+    GLuint _gBuffer;
+    GLuint _debugBuffer;
+    GLuint _depthBuffer;
+
     void CreateFrameBuffer(GLuint& buffer) {
         GL_CHECK(glGenBuffers(1, &buffer));
     }
 
-    void CreateColorAttachment(GLuint& attch, GLint internalFormat, GLint type, GLint format) {
-        CreateColorAttachment(attch, internalFormat, type, format);
+    void CreateColorAttachmentTex(GLuint& attch, GLint internalFormat, GLint format, GLint type) {
+        CreateColorAttachmentTex(attch, internalFormat, format, type, _screenWidth, _screenHeight);
     }
 
     void CreateColorAttachmentTex(GLuint& attch, GLint internalFormat, GLint format, GLint type, int width, int height) {
@@ -52,5 +56,13 @@ private:
         GL_CHECK(glBindBuffer(GL_FRAMEBUFFER,0));
     }
 
-    
+    void CreateDepthBuffer(GLuint framebuffer, GLuint& depthBuffer) {
+        GL_CHECK(glGenRenderbuffers(1, &depthBuffer));
+        GL_CHECK(glBindRenderbuffer(GL_RENDERBUFFER, depthBuffer));
+        GL_CHECK(glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, _screenWidth, _screenHeight));
+
+        GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, framebuffer));
+        GL_CHECK(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer));
+        GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+    }
 };
