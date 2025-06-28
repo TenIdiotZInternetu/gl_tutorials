@@ -1,20 +1,14 @@
 #pragma once
 
+#include <glad/glad.h>
 #include <vector>
 
 #include "camera.hpp"
 #include "error_handling.hpp"
 #include "spotlight.hpp"
-#include "framebuffer.hpp"
-#include "shadowmap_framebuffer.hpp"
 #include "ogl_material_factory.hpp"
 #include "ogl_geometry_factory.hpp"
 #include "ssao.hpp"
-
-struct ColorAttachment {
-    GLuint id;
-    GLenum tag;
-};
 
 class MyRenderer {
 public:
@@ -32,9 +26,9 @@ private:
         CreateColorAttachment(attch, internalFormat, type, format);
     }
 
-    void CreateColorAttachment(ColorAttachment& attch, GLint internalFormat, GLint format, GLint type, int width, int height) {
-        GL_CHECK(glGenTextures(1, &attch.id));
-        GL_CHECK(glBindTexture(GL_TEXTURE_2D, attch.id));
+    void CreateColorAttachmentTex(GLuint& attch, GLint internalFormat, GLint format, GLint type, int width, int height) {
+        GL_CHECK(glGenTextures(1, &attch));
+        GL_CHECK(glBindTexture(GL_TEXTURE_2D, attch));
 
         GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, NULL));
 
@@ -43,9 +37,20 @@ private:
         GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
         GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
 
-        attch.tag = GL_COLOR_ATTACHMENT0 + _attachementsCreated;
-
-        GL_CHECK(glFramebufferTexture2D(GL_FRAMEBUFFER, attch.tag, GL_TEXTURE_2D, attch.id, 0);)
         GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
     }
+
+    void AttachTextures(GLuint& framebuffer, const std::vector<GLuint>& attachements) {
+        GL_CHECK(glBindBuffer(GL_FRAMEBUFFER, framebuffer));
+
+        for ( int i = 0; i < attachements.size(); ++i) {
+            auto attch = attachements[i];
+            GLint tag = GL_COLOR_ATTACHMENT0 + i;
+            GL_CHECK(glFramebufferTexture2D(GL_FRAMEBUFFER, tag, GL_TEXTURE_2D, attch, 0));
+        }
+
+        GL_CHECK(glBindBuffer(GL_FRAMEBUFFER,0));
+    }
+
+    
 };
