@@ -12,17 +12,44 @@
 
 class MyRenderer {
 public:
+    MyRenderer(int screenWidth, int screenHeight) :
+        _screenWidth(screenWidth),
+        _screenHeight(screenHeight)
+    {}
+
+    void init() {
+        _quad = generateQuadTex();
+
+        CreateFramebuffer(_gBuffer);
+        GLuint gPosition, gNormal, gAlbedo;
+
+        CreateColorAttachmentTex(gPosition, GL_RGBA, GL_RGBA, GL_FLOAT);
+        CreateColorAttachmentTex(gNormal, GL_RGBA32F, GL_RGBA, GL_FLOAT);
+        CreateColorAttachmentTex(gAlbedo, GL_RGBA32F, GL_RGBA, GL_FLOAT);
+        AttachTextures(_gBuffer, {gPosition, gNormal, gAlbedo});
+
+        CreateFramebuffer(_debugBuffer);
+        GLuint fb0, fb1, fb2, fb3;
+
+        CreateColorAttachmentTex(fb0, GL_RGBA32F, GL_RGBA, GL_FLOAT);
+        CreateColorAttachmentTex(fb1, GL_RGBA32F, GL_RGBA, GL_FLOAT);
+        CreateColorAttachmentTex(fb2, GL_RGBA32F, GL_RGBA, GL_FLOAT);
+        CreateColorAttachmentTex(fb3, GL_RGBA32F, GL_RGBA, GL_FLOAT);
+        AttachTextures(_debugBuffer, {fb0, fb1, fb2, fb3});
+
+        CreateDepthBuffer(_gBuffer, depthBuffer);
+    }
+
 private:
-    IndexedBuffer _quad;
     int _screenWidth;
     int _screenHeight;
+
     int _attachementsCreated = 0;
+    IndexedBuffer _quad;
 
-    GLuint _gBuffer;
-    GLuint _debugBuffer;
-    GLuint _depthBuffer;
+    GLuint _gBuffer, _debugBuffer, depthBuffer;
 
-    void CreateFrameBuffer(GLuint& buffer) {
+    void CreateFramebuffer(GLuint& buffer) {
         GL_CHECK(glGenBuffers(1, &buffer));
     }
 
