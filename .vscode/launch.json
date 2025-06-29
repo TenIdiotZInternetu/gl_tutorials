@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "04_deffered",
+            "name": "cppdbg",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/04_deffered/04_deffered",

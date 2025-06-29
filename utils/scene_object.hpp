@@ -4,6 +4,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/quaternion.hpp> // For glm::quat
 #include <glm/gtx/string_cast.hpp>
+#include <optional>
 
 #include "material_factory.hpp"
 #include "geometry_factory.hpp"
@@ -11,7 +12,6 @@
 struct RenderData {
 	const glm::mat4 modelMat;
 	const MaterialParameters &mMaterialParams;
-	const AShaderProgram &mShaderProgram;
 	const AGeometry &mGeometry;
 };
 
@@ -104,7 +104,6 @@ public:
 		return std::optional<RenderData>(RenderData{
 				getModelMatrix(),
 				mRenderInfo.materialParams,
-				*(mRenderInfo.shaderProgram),
 				*(mRenderInfo.geometry)
 			});
 	}

@@ -5,8 +5,10 @@ project(04_deffered)
 
 add_executable(04_deffered 
 	main.cpp
-	renderer.hpp
 	scene_definition.hpp
+	myrenderer.hpp
+	shader.h
+	ssao.hpp
 )
 target_sources(04_deffered PRIVATE 
 	${CMAKE_CURRENT_SOURCE_DIR}/../glad/src/glad.c

@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 #include <string>
+#include <glad/glad.h>
+#include <unordered_map>
 
 /**
  * @brief Exception class for OpenGL errors,

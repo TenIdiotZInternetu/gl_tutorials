@@ -3,26 +3,26 @@
 #include <glad/glad.h>
 #include <vector>
 
-#include "shader.h"
-#include "camera.hpp"
 #include "error_handling.hpp"
-#include "spotlight.hpp"
-#include "ogl_material_factory.hpp"
+#include "ogl_geometry_construction.hpp"
 #include "ogl_geometry_factory.hpp"
+#include "scene_object.hpp"
+#include "shader.h"
 #include "ssao.hpp"
 
 class MyRenderer {
 public:
     MyRenderer(int screenWidth, int screenHeight) :
-        _screenWidth(screenWidth),
-        _screenHeight(screenHeight)
-    {}
+        _geometryShader("./shaders/geometry.vs.glsl", "./shaders/geometry.fs.glsl"),
+        _lightingShader("./shaders/lighting.vs.glsl", "./shaders/lighting.fs.glsl"),
+        _quad(generateQuadTex())
+    {
+        Resize(screenWidth, screenHeight);
+    }
 
-    void init() {
-        _quad = generateQuadTex();
-
-        _geometryShader = Shader("geometry.vs.glsl", "geometry.fs.glsl");
-        _lightingShader = Shader("lighting.vs.glsl", "lighting.fs.glsl");
+    void Resize(int width, int height) {
+        _screenWidth = width;
+        _screenHeight = height;
 
         CreateFramebuffer(_gBuffer);
         CreateColorAttachmentTex(_gPosition, GL_RGBA, GL_RGBA, GL_FLOAT);
@@ -41,7 +41,7 @@ public:
     }
 
     template<typename TScene, typename TCamera>
-    void geometryPass(const TScene &scene, const TCamera &camera) {
+    void GeometryPass(const TScene &scene, const TCamera &camera) {
         Clear();
         GL_CHECK(glEnable(GL_DEPTH_TEST));
 		GL_CHECK(glViewport(0, 0, _screenWidth, _screenHeight));
@@ -53,18 +53,19 @@ public:
         _geometryShader.setMat4("u_projMat", camera.getProjectionMatrix());
 
         for (auto&& object : scene.getObjects()) {
-            auto data = object.getRenderData("");
+            auto data = object.getRenderData(RenderOptions{"solid"}).value();
+            const OGLGeometry& geometry = static_cast<const OGLGeometry&>(data.mGeometry);
 
             _geometryShader.setMat4("u_modelMat", data.modelMat);
-            data.geometry.bind();
-            data.geometry.draw();
+            geometry.bind();
+            geometry.draw();
         }
 
         Clear();
     }
 
     template<typename TLight, typename TCamera>
-    void lightingPass(const TLight& light, const TCamera& camera) {
+    void LightingPass(const TLight& light, const TCamera& camera) {
         Clear();
         GL_CHECK(glDisable(GL_DEPTH_TEST));
 

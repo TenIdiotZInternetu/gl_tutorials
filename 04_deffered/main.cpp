@@ -3,17 +3,17 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <string>
-#include <vector>
 #include <array>
 
-#include "ogl_resource.hpp"
+#include "myrenderer.hpp"
 #include "error_handling.hpp"
 #include "window.hpp"
 #include "shader.hpp"
-
+#include "camera.hpp"
+#include "spotlight.hpp"
 
 #include "scene_definition.hpp"
-#include "renderer.hpp"
+#include "myrenderer.hpp"
 
 #include "ogl_geometry_factory.hpp"
 #include "ogl_material_factory.hpp"
@@ -99,23 +99,16 @@ int main() {
 			createCottageScene(materialFactory, geometryFactory),
 		};
 
-		Renderer renderer(materialFactory);
-		renderer.applySsao(ssao{});
+		MyRenderer renderer(window.size()[0], window.size()[1]);
 
 		window.onResize([&camera, &window, &renderer](int width, int height) {
-				camera.setAspectRatio(window.aspectRatio());
-				renderer.initialize(width, height);
-			});
+			camera.setAspectRatio(window.aspectRatio());
+			renderer.Resize(width, height);
+		});
 
-
-		renderer.initialize(window.size()[0], window.size()[1]);
 		window.runLoop([&] {
-			renderer.shadowMapPass(scenes[config.currentSceneIdx], light);
-			// renderer.shadowMapPass(scenes[config.currentSceneIdx], camera);
-
-			renderer.clear();
-			renderer.geometryPass(scenes[config.currentSceneIdx], camera, RenderOptions{"solid"});
-			renderer.compositingPass(light, camera);
+			renderer.GeometryPass(scenes[config.currentSceneIdx], camera);
+			renderer.LightingPass(light, camera);
 		});
 	} catch (ShaderCompilationError &exc) {
 		std::cerr
@@ -126,9 +119,6 @@ int main() {
 	} catch (OpenGLError &exc) {
 		std::cerr << "OpenGL error: " << exc.what() << "\n";
 		return -2;
-	} catch (std::exception &exc) {
-		std::cerr << "Error: " << exc.what() << "\n";
-		return -1;
 	}
 
 	glfwTerminate();
