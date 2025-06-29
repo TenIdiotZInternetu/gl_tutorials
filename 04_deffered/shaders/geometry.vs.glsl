@@ -1,10 +1,7 @@
 #version 430 core
 
-
-uniform mat4 u_modelMat;
 uniform mat4 u_viewMat;
 uniform mat4 u_projMat;
-uniform mat3 u_normalMat;
 
 // uniform mat4 u_lightMat;
 
@@ -20,8 +17,8 @@ out vec4 shadowCoords;
 
 void main(void)
 {
-	position = u_modelMat * vec4(in_vert, 1);
-	normal = normalize(u_normalMat * in_normal);
+	position = vec4(in_vert, 1);
+	normal = normalize(in_normal);
 	texCoords = in_texCoords;
 
 	gl_Position = u_projMat * u_viewMat * position;

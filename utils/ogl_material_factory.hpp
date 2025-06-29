@@ -110,7 +110,6 @@ public:
 			}
 			nextTexturingUnit = setUniform(uniform, it->second, nextTexturingUnit);
 		}
-
 	}
 };
 

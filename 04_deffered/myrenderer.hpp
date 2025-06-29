@@ -1,15 +1,66 @@
 #pragma once
 
 #include <glad/glad.h>
+#include <memory>
 #include <vector>
 
 #include "error_handling.hpp"
+#include "material_factory.hpp"
 #include "ogl_geometry_construction.hpp"
 #include "ogl_geometry_factory.hpp"
 #include "ogl_material_factory.hpp"
 #include "scene_object.hpp"
 #include "shader.h"
 #include "ssao.hpp"
+
+class MySceneObject {
+public:
+    MySceneObject(const std::string& meshPath, std::shared_ptr<OGLTexture> texture) :
+        _texture(texture)
+    {
+        OGLGeometryFactory geometry_factory;
+        _geometry = static_pointer_cast<OGLGeometry>(
+            geometry_factory.loadMesh(meshPath, RenderStyle::Solid)
+        );
+    }
+
+    const OGLGeometry& geometry() const {
+        return *_geometry;
+    }
+
+    const OGLTexture& texture() const {
+        return *_texture;
+    }
+
+private:
+    std::shared_ptr<OGLGeometry> _geometry;
+    std::shared_ptr<OGLTexture> _texture;
+};
+
+class MyScene {
+public:
+    OGLMaterialFactory* _materialFactory;
+
+    MyScene(OGLMaterialFactory* materialFactory) : 
+        _materialFactory(materialFactory) 
+    {}
+
+    MyScene& addObject(const std::string& meshPath, const std::string& texturePath) {
+        _objects.emplace_back(
+            meshPath,
+            static_pointer_cast<OGLTexture>(_materialFactory->getTexture(texturePath))
+        );
+        return *this;
+    }
+
+    const std::vector<MySceneObject>& getObjects() const {
+        return _objects;
+    }
+
+private:
+    std::vector<MySceneObject> _objects;
+};
+
 
 class MyRenderer {
 public:
@@ -41,25 +92,24 @@ public:
         CreateDepthBuffer(_gBuffer, depthBuffer);
     }
 
-    template<typename TScene, typename TCamera>
-    void GeometryPass(const TScene &scene, const TCamera &camera) {
+    template<typename TCamera>
+    void GeometryPass(const MyScene &scene, const TCamera &camera) {
+        BindFramebuffer(_gBuffer);
         Clear();
         GL_CHECK(glEnable(GL_DEPTH_TEST));
 		GL_CHECK(glViewport(0, 0, _screenWidth, _screenHeight));
 
-        BindFramebuffer(_gBuffer);
         _geometryShader.use();
 
         _geometryShader.setMat4("u_viewMat", camera.getViewMatrix());
         _geometryShader.setMat4("u_projMat", camera.getProjectionMatrix());
 
         for (auto&& object : scene.getObjects()) {
-            auto data = object.getRenderData(RenderOptions{"solid"}).value();
-            const OGLGeometry& geometry = static_cast<const OGLGeometry&>(data.mGeometry);
-            const OGLTexture& texture = data.mMaterialParams.mParameterValues;
+            const OGLGeometry& geometry = object.geometry();
+            const OGLTexture& texture = object.texture();
 
-            BindShaderTexture(0, texture.texture.get())
-            _geometryShader.setMat4("u_modelMat", data.modelMat);
+            BindShaderTexture(0, texture.texture.get());
+            _geometryShader.setInt("u_diffuseTexture", 0);
 
             geometry.bind();
             geometry.draw();
@@ -70,10 +120,10 @@ public:
 
     template<typename TLight, typename TCamera>
     void LightingPass(const TLight& light, const TCamera& camera) {
+        BindFramebuffer(_debugBuffer);
         Clear();
         GL_CHECK(glDisable(GL_DEPTH_TEST));
 
-        BindFramebuffer(_debugBuffer);
         _lightingShader.use();
 
         BindShaderTexture(0, _gAlbedo);
@@ -184,9 +234,5 @@ private:
     void Clear() {
 		GL_CHECK(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
 		GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-    }
-
-    void CheckFramebuferStatus() {
-
     }
 };
