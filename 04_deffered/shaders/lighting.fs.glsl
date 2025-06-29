@@ -1,13 +1,13 @@
 #version 430 core
 
 const int SSAO_COUNT = 64;
-const float SSAO_RADIUS = 0.5;
+const float SSAO_RADIUS = 0.2;
 const float SSAO_BIAS = 0.02;
 const vec3 AMBIENT_COLOR = vec3(0.1, 0.2, 0.3);
 
-uniform sampler2D u_diffuse;
-uniform sampler2D u_normal;
-uniform sampler2D u_position;
+layout(location = 0) uniform sampler2D u_albedo;
+layout(location = 1) uniform sampler2D u_normal;
+layout(location = 2) uniform sampler2D u_position;
 
 layout(location = 15) uniform vec3 u_lightPos;
 layout(location = 20) uniform mat4 u_lightViewMat;
@@ -19,10 +19,11 @@ layout(location = 128) uniform vec3 u_ssaoSamples[SSAO_COUNT];
 
 in vec2 texCoords;
 
-out vec4 fb1;
-out vec3 fb2;
-out vec3 fb3;
-// out vec4 fragColor;
+// out vec4 fb1;
+// out vec3 fb2;
+// out vec3 fb3;
+// out vec4 fb4;
+out vec4 fragColor;
 
 // randomVec determines rotation of the base around Z axis => rotation of the ssao kernel
 mat3 tbnMatrix(vec3 normal, vec3 randomVec) {
@@ -34,18 +35,19 @@ mat3 tbnMatrix(vec3 normal, vec3 randomVec) {
 float ssaoFactor(vec3 position, mat3 tbn) {
 	int samplesOccluded = 0;
 
+	// vec3 viewPos = (u_viewMat * vec4(position, 1)).xyz;
+
 	for (int i = 0; i < SSAO_COUNT; ++i) {
-		vec3 samplePos = SSAO_RADIUS * tbn * u_ssaoSamples[i] + position;
-		vec4 samplePointPos = u_viewMat * vec4(samplePos, 1);
+		vec3 samplePos = position + tbn * u_ssaoSamples[i] * SSAO_RADIUS;
+		vec4 samplePointPos = vec4(samplePos, 1);
 
 		vec4 projectedSample = u_projMat * samplePointPos;
 		projectedSample /= projectedSample.w;
 		vec2 offset = projectedSample.xy * 0.5 + 0.5;
 
 		vec4 sampleFragPos = texture(u_position, offset);
-		sampleFragPos = u_viewMat * sampleFragPos;
 
-		if (sampleFragPos.z > samplePos.z - SSAO_BIAS) {
+		if (sampleFragPos.z > samplePos.z + SSAO_BIAS) {
 			samplesOccluded++;
 		}
 	}
@@ -56,43 +58,21 @@ float ssaoFactor(vec3 position, mat3 tbn) {
 void main() {
 	vec3 position = texture(u_position, texCoords).xyz;
 	vec3 normal = texture(u_normal, texCoords).xyz;
-	vec3 diffuseColor = texture(u_diffuse, texCoords).xyz;
+	vec3 albedo = texture(u_albedo, texCoords).xyz;
 
-	mat3 tbn = tbnMatrix(normal, diffuseColor);
+	mat3 tbn = tbnMatrix(normal, albedo);
 	vec3 ambientColor = AMBIENT_COLOR * ssaoFactor(position, tbn);
 
+	vec3 lightDir = normalize(u_lightPos - position);
+	float lamb = max(dot(lightDir, normal), 0.0);
+	
+	fragColor = vec4(lamb * albedo + ambientColor, 1.0);
+	fragColor = vec4(ssaoFactor(position, tbn));
 
 
-
-	int samplesOccluded = 0;
-
-	vec3 samplePos = SSAO_RADIUS * tbn * u_ssaoSamples[0] + position;
-	vec4 samplePointPos = u_viewMat * vec4(samplePos, 1);
-
-	vec4 projectedSample = u_projMat * samplePointPos;
-	projectedSample /= projectedSample.w;
-	vec2 offset = projectedSample.xy * 0.5 + 0.5;
-
-	vec4 sampleFragPos = texture(u_position, offset);
-	sampleFragPos = u_viewMat * sampleFragPos;
-
-	if (sampleFragPos.z > samplePos.z - SSAO_BIAS) {
-		samplesOccluded++;
-	}
-
-	float s = 1 - float(samplesOccluded) / float(SSAO_COUNT);
-
-	fb1 = vec4(s);
-	fb2 = samplePointPos.xyz;
-	fb3 = sampleFragPos.xyz;
-
-	// vec3 lightDir = normalize(u_lightPos - position);
-	// float lamb = max(dot(lightDir, normal), 0.0);
-	// fragColor = vec4(lamb * diffuseColor + AMBIENT_COLOR, 1.0);
-
-	// vec4 shadowCoords = (u_lightProjMat * u_lightViewMat * vec4(position, 1.0));
-	// // shadowCoords are in light clipspace, but we get fragment relative 
-	// // coordinates in the shadowmap, so we need to remap to [0,1] interval in all dimensions
+	vec4 shadowCoords = (u_lightProjMat * u_lightViewMat * vec4(position, 1.0));
+	// shadowCoords are in light clipspace, but we get fragment relative 
+	// coordinates in the shadowmap, so we need to remap to [0,1] interval in all dimensions
 	// vec3 mappedShadowCoords = (shadowCoords.xyz/shadowCoords.w) * 0.5 + 0.5;
 	// if (mappedShadowCoords.x > 0 && mappedShadowCoords.x < 1
 	// 	&& mappedShadowCoords.y > 0 && mappedShadowCoords.y < 1) {

@@ -17,11 +17,11 @@ out vec4 shadowCoords;
 
 void main(void)
 {
-	position = vec4(in_vert, 1);
+	position = u_viewMat * vec4(in_vert, 1);
 	normal = normalize(in_normal);
 	texCoords = in_texCoords;
 
-	gl_Position = u_projMat * u_viewMat * position;
+	gl_Position = u_projMat * position;
 
 	// shadowCoords = u_lightMat * position;
 }

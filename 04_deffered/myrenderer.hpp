@@ -77,10 +77,10 @@ public:
         _screenHeight = height;
 
         CreateFramebuffer(_gBuffer);
-        CreateColorAttachmentTex(_gPosition, GL_RGBA, GL_RGBA, GL_FLOAT);
+        CreateColorAttachmentTex(_gAlbedo, GL_RGBA, GL_RGBA, GL_FLOAT);
         CreateColorAttachmentTex(_gNormal, GL_RGBA32F, GL_RGBA, GL_FLOAT);
-        CreateColorAttachmentTex(_gAlbedo, GL_RGBA32F, GL_RGBA, GL_FLOAT);
-        AttachTextures(_gBuffer, {_gPosition, _gNormal, _gAlbedo});
+        CreateColorAttachmentTex(_gPosition, GL_RGBA32F, GL_RGBA, GL_FLOAT);
+        AttachTextures(_gBuffer, {_gAlbedo, _gNormal, _gPosition});
 
         CreateFramebuffer(_debugBuffer);
         CreateColorAttachmentTex(_debugTex1, GL_RGBA32F, GL_RGBA, GL_FLOAT);
@@ -108,8 +108,7 @@ public:
             const OGLGeometry& geometry = object.geometry();
             const OGLTexture& texture = object.texture();
 
-            BindShaderTexture(0, texture.texture.get());
-            _geometryShader.setInt("u_diffuseTexture", 0);
+            BindShaderTexture(_geometryShader, "u_diffuseTexture", texture.texture.get());
 
             geometry.bind();
             geometry.draw();
@@ -120,19 +119,19 @@ public:
 
     template<typename TLight, typename TCamera>
     void LightingPass(const TLight& light, const TCamera& camera) {
-        BindFramebuffer(_debugBuffer);
+        // BindFramebuffer(_debugBuffer);
         Clear();
         GL_CHECK(glDisable(GL_DEPTH_TEST));
 
         _lightingShader.use();
 
-        BindShaderTexture(0, _gAlbedo);
-        BindShaderTexture(1, _gNormal);
-        BindShaderTexture(2, _gPosition);
+        BindShaderTexture(_lightingShader, "u_albedo", _gAlbedo);
+        BindShaderTexture(_lightingShader, "u_normal", _gNormal);
+        BindShaderTexture(_lightingShader, "u_position", _gPosition);
 
         // Pass SSAO samples
-        for (GLuint i = 0; i < ssao::SAMPLES_COUNT; ++i)
-            _lightingShader.setVec3("u_ssaoSamples[" + std::to_string(i) + "]", _ssao.kernel()[i]);
+        GLint location = glGetUniformLocation(_lightingShader.ID, "u_ssaoSamples");
+		GL_CHECK(glUniform3fv(location, ssao::SAMPLES_COUNT, glm::value_ptr(_ssao.kernel()[0])));
 
         _lightingShader.setVec3("u_lightPos", light.getPosition());
         _lightingShader.setMat4("u_lightViewMat", light.getViewMatrix());
@@ -176,8 +175,10 @@ private:
         GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
     }
 
-    void BindShaderTexture(GLuint index, GLuint texture) {
-        GL_CHECK(glActiveTexture(GL_TEXTURE0 + index));
+    void BindShaderTexture(const Shader& shader, const std::string uniformName, GLuint texture) {
+        GLuint location = GL_CHECK(glGetUniformLocation(shader.ID, uniformName.c_str()));
+        shader.setInt(uniformName, location);
+        GL_CHECK(glActiveTexture(GL_TEXTURE0 + location));
         GL_CHECK(glBindTexture(GL_TEXTURE_2D, texture));
     }
 

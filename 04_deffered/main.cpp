@@ -92,12 +92,10 @@ int main() {
 		materialFactory.loadShadersFromDir("./shaders/");
 		materialFactory.loadTexturesFromDir("./data/textures/");
 
-		OGLGeometryFactory geometryFactory;
-
-
-		std::array<SimpleScene, 1> scenes {
-			createCottageScene(materialFactory, geometryFactory),
-		};
+		MyScene cottageScene(&materialFactory);
+		cottageScene.addObject("./data/geometry/cottage.obj", "cottage/cottageDif.jpg")
+					.addObject("./data/geometry/ground.obj", "cottage/groundDif.png")
+					.addObject("./data/geometry/oak.obj", "cottage/OakDif.png");
 
 		MyRenderer renderer(window.size()[0], window.size()[1]);
 
@@ -107,7 +105,7 @@ int main() {
 		});
 
 		window.runLoop([&] {
-			renderer.GeometryPass(scenes[config.currentSceneIdx], camera);
+			renderer.GeometryPass(cottageScene, camera);
 			renderer.LightingPass(light, camera);
 		});
 	} catch (ShaderCompilationError &exc) {
