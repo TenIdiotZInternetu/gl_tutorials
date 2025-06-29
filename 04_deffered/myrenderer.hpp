@@ -6,6 +6,7 @@
 #include "error_handling.hpp"
 #include "ogl_geometry_construction.hpp"
 #include "ogl_geometry_factory.hpp"
+#include "ogl_material_factory.hpp"
 #include "scene_object.hpp"
 #include "shader.h"
 #include "ssao.hpp"
@@ -55,13 +56,16 @@ public:
         for (auto&& object : scene.getObjects()) {
             auto data = object.getRenderData(RenderOptions{"solid"}).value();
             const OGLGeometry& geometry = static_cast<const OGLGeometry&>(data.mGeometry);
+            const OGLTexture& texture = data.mMaterialParams.mParameterValues;
 
+            BindShaderTexture(0, texture.texture.get())
             _geometryShader.setMat4("u_modelMat", data.modelMat);
+
             geometry.bind();
             geometry.draw();
         }
 
-        Clear();
+        UnbindFramebuffer();
     }
 
     template<typename TLight, typename TCamera>
@@ -88,7 +92,7 @@ public:
         _lightingShader.setMat4("u_projMat", camera.getProjectionMatrix());
 
         RenderQuad();
-        Clear();
+        UnbindFramebuffer();
     }
 
 private:
@@ -111,7 +115,7 @@ private:
     }
 
     void CreateFramebuffer(GLuint& buffer) {
-        GL_CHECK(glGenBuffers(1, &buffer));
+        GL_CHECK(glGenFramebuffers(1, &buffer));
     }
 
     void BindFramebuffer(GLuint buffer) {
@@ -146,15 +150,25 @@ private:
     }
 
     void AttachTextures(GLuint framebuffer, const std::vector<GLuint>& attachements) {
-        GL_CHECK(glBindBuffer(GL_FRAMEBUFFER, framebuffer));
+        GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, framebuffer));
+        std::vector<GLenum> drawBuffers;
 
         for ( int i = 0; i < attachements.size(); ++i) {
             auto attch = attachements[i];
-            GLint tag = GL_COLOR_ATTACHMENT0 + i;
-            GL_CHECK(glFramebufferTexture2D(GL_FRAMEBUFFER, tag, GL_TEXTURE_2D, attch, 0));
+            GLint drawBuffer = GL_COLOR_ATTACHMENT0 + i;
+            drawBuffers.push_back(drawBuffer);
+
+            GL_CHECK(glFramebufferTexture2D(GL_FRAMEBUFFER, drawBuffer, GL_TEXTURE_2D, attch, 0));
         }
 
-        GL_CHECK(glBindBuffer(GL_FRAMEBUFFER,0));
+        GL_CHECK(glDrawBuffers(drawBuffers.size(), drawBuffers.data()));
+
+        GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        if (status != GL_FRAMEBUFFER_COMPLETE) {
+            throw OpenGLError("Framebuffer not complete: " + std::to_string(status));
+        }
+
+        GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER,0));
     }
 
     void CreateDepthBuffer(GLuint framebuffer, GLuint& depthBuffer) {
@@ -168,8 +182,11 @@ private:
     }
 
     void Clear() {
-		UnbindFramebuffer();
 		GL_CHECK(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
 		GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+    }
+
+    void CheckFramebuferStatus() {
+
     }
 };
