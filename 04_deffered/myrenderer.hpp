@@ -22,7 +22,7 @@ public:
         _quad = generateQuadTex();
 
         _geometryShader = Shader("geometry.vs.glsl", "geometry.fs.glsl");
-        _ligthingShader = Shader("lighting.vs.glsl", "lighting.fs.glsl");
+        _lightingShader = Shader("lighting.vs.glsl", "lighting.fs.glsl");
 
         CreateFramebuffer(_gBuffer);
         CreateColorAttachmentTex(_gPosition, GL_RGBA, GL_RGBA, GL_FLOAT);
@@ -42,12 +42,12 @@ public:
 
     template<typename TScene, typename TCamera>
     void geometryPass(const TScene &scene, const TCamera &camera) {
-        clear();
+        Clear();
         GL_CHECK(glEnable(GL_DEPTH_TEST));
 		GL_CHECK(glViewport(0, 0, _screenWidth, _screenHeight));
 
-        _geometryShader.use();
         BindFramebuffer(_gBuffer);
+        _geometryShader.use();
 
         _geometryShader.setMat4("u_viewMat", camera.getViewMatrix());
         _geometryShader.setMat4("u_projMat", camera.getProjectionMatrix());
@@ -60,10 +60,35 @@ public:
             data.geometry.draw();
         }
 
-        clear();
+        Clear();
     }
 
-    
+    template<typename TLight, typename TCamera>
+    void lightingPass(const TLight& light, const TCamera& camera) {
+        Clear();
+        GL_CHECK(glDisable(GL_DEPTH_TEST));
+
+        BindFramebuffer(_debugBuffer);
+        _lightingShader.use();
+
+        BindShaderTexture(0, _gAlbedo);
+        BindShaderTexture(1, _gNormal);
+        BindShaderTexture(2, _gPosition);
+
+        // Pass SSAO samples
+        for (GLuint i = 0; i < ssao::SAMPLES_COUNT; ++i)
+            _lightingShader.setVec3("u_ssaoSamples[" + std::to_string(i) + "]", _ssao.kernel()[i]);
+
+        _lightingShader.setVec3("u_lightPos", light.getPosition());
+        _lightingShader.setMat4("u_lightViewMat", light.getViewMatrix());
+        _lightingShader.setMat4("u_lightProjMat", light.getProjectionMatrix());
+
+        _lightingShader.setMat4("u_viewMat", camera.getViewMatrix());
+        _lightingShader.setMat4("u_projMat", camera.getProjectionMatrix());
+
+        RenderQuad();
+        Clear();
+    }
 
 private:
     int _screenWidth;
@@ -75,10 +100,14 @@ private:
     GLuint _gBuffer, _debugBuffer, depthBuffer;
     GLuint _gPosition, _gNormal, _gAlbedo;
     GLuint _debugTex1, _debugTex2, _debugTex3, _debugTex4;
-    Shader _geometryShader, _ligthingShader;
+    Shader _geometryShader, _lightingShader;
 
     ssao _ssao;
 
+    void RenderQuad() {
+        GL_CHECK(glBindVertexArray(_quad.vao.get()));
+  		GL_CHECK(glDrawElements(_quad.mode, _quad.indexCount, GL_UNSIGNED_INT, reinterpret_cast<void*>(0)));
+    }
 
     void CreateFramebuffer(GLuint& buffer) {
         GL_CHECK(glGenBuffers(1, &buffer));
@@ -137,7 +166,7 @@ private:
         GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
     }
 
-    void clear() {
+    void Clear() {
 		UnbindFramebuffer();
 		GL_CHECK(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
 		GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));

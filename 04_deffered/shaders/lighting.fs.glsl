@@ -5,11 +5,9 @@ const float SSAO_RADIUS = 0.5;
 const float SSAO_BIAS = 0.02;
 const vec3 AMBIENT_COLOR = vec3(0.1, 0.2, 0.3);
 
-layout(binding = 0) uniform sampler2D u_diffuse;
-layout(binding = 1) uniform sampler2D u_normal;
-layout(binding = 2) uniform sampler2D u_position;
-layout(binding = 3) uniform sampler2D u_depth;
-layout(binding = 4) uniform sampler2D u_shadowMap;
+uniform sampler2D u_diffuse;
+uniform sampler2D u_normal;
+uniform sampler2D u_position;
 
 layout(location = 15) uniform vec3 u_lightPos;
 layout(location = 20) uniform mat4 u_lightViewMat;
