@@ -23,13 +23,17 @@
 const float MOVEMENT_STEP = 2.0f;
 constexpr glm::vec3 CAMERA_POS = {0.0f, 5.0f, 20.0f};
 
+namespace app {
+
+}
+
 void toggle(const std::string &aToggleName, bool &aToggleValue) {
 
 	aToggleValue = !aToggleValue;
 	std::cout << aToggleName << ": " << (aToggleValue ? "ON\n" : "OFF\n");
 }
 
-void defineControls(Window& window, Camera& camera, MouseTracking& mouseTracking ) {
+void defineControls(Window& window, Camera& camera, MouseTracking& mouseTracking, MyRenderer& renderer) {
 	window.onCheckInput([&camera, &mouseTracking](GLFWwindow *aWin) {
 		mouseTracking.update(aWin);
 		if (glfwGetMouseButton(aWin, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
@@ -37,7 +41,7 @@ void defineControls(Window& window, Camera& camera, MouseTracking& mouseTracking
 		}
 	});
 
-	window.setKeyCallback([&camera](GLFWwindow *aWin, int key, int scancode, int action, int mods) {
+	window.setKeyCallback([&](GLFWwindow *aWin, int key, int scancode, int action, int mods) {
 		if (action != GLFW_PRESS) return;
 
 		switch (key) {
@@ -56,6 +60,12 @@ void defineControls(Window& window, Camera& camera, MouseTracking& mouseTracking
 				break;
 			case GLFW_KEY_D:
 				camera.move(camera.getRightVector() * MOVEMENT_STEP);
+				break;
+			case GLFW_KEY_Q:
+				renderer.ToggleAlbedo();
+				break;
+			case GLFW_KEY_E:
+				renderer.ToggleSSAO();
 				break;
 		}
 	});
@@ -85,8 +95,10 @@ int main() {
 		light.setPosition(glm::vec3(25.0f, 40.0f, 30.0f));
 		light.lookAt(glm::vec3());
 
+		MyRenderer renderer(window.size()[0], window.size()[1]);
 		MouseTracking mouseTracking;
-		defineControls(window, camera, mouseTracking);
+
+		defineControls(window, camera, mouseTracking, renderer);
 
 		OGLMaterialFactory materialFactory;
 		materialFactory.loadShadersFromDir("./shaders/");
@@ -97,7 +109,6 @@ int main() {
 					.addObject("./data/geometry/ground.obj", "cottage/groundDif.png")
 					.addObject("./data/geometry/oak.obj", "cottage/OakDif.png");
 
-		MyRenderer renderer(window.size()[0], window.size()[1]);
 
 		window.onResize([&camera, &window, &renderer](int width, int height) {
 			camera.setAspectRatio(window.aspectRatio());

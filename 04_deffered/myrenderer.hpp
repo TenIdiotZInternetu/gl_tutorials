@@ -140,8 +140,19 @@ public:
         _lightingShader.setMat4("u_viewMat", camera.getViewMatrix());
         _lightingShader.setMat4("u_projMat", camera.getProjectionMatrix());
 
+        _lightingShader.setBool("u_enableAlbedo", _renderAlbedo);
+        _lightingShader.setBool("u_enableSSAO", _renderSSAO);
+
         RenderQuad();
         UnbindFramebuffer();
+    }
+
+    void ToggleAlbedo() {
+        _renderAlbedo = !_renderAlbedo;
+    }
+
+    void ToggleSSAO() {
+        _renderSSAO = !_renderSSAO;
     }
 
 private:
@@ -157,6 +168,9 @@ private:
     Shader _geometryShader, _lightingShader;
 
     ssao _ssao;
+
+    bool _renderAlbedo = true;
+    bool _renderSSAO = true;
 
     void RenderQuad() {
         GL_CHECK(glBindVertexArray(_quad.vao.get()));

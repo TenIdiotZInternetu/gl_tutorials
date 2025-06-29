@@ -1,9 +1,9 @@
 #version 430 core
 
 const int SSAO_COUNT = 64;
-const float SSAO_RADIUS = 0.2;
+const float SSAO_RADIUS = 0.4;
 const float SSAO_BIAS = 0.02;
-const vec3 AMBIENT_COLOR = vec3(0.1, 0.2, 0.3);
+const vec3 AMBIENT_COLOR = vec3(0.1, 0.1, 0.2);
 
 layout(location = 0) uniform sampler2D u_albedo;
 layout(location = 1) uniform sampler2D u_normal;
@@ -16,6 +16,9 @@ layout(location = 40) uniform mat4 u_lightProjMat;
 layout(location = 60) uniform mat4 u_viewMat;
 layout(location = 80) uniform mat4 u_projMat;
 layout(location = 128) uniform vec3 u_ssaoSamples[SSAO_COUNT];
+
+layout(location = 10) uniform bool u_enableAlbedo;
+layout(location = 11) uniform bool u_enableSSAO;
 
 in vec2 texCoords;
 
@@ -46,8 +49,9 @@ float ssaoFactor(vec3 position, mat3 tbn) {
 		vec2 offset = projectedSample.xy * 0.5 + 0.5;
 
 		vec4 sampleFragPos = texture(u_position, offset);
+		bool sampledInfinity = sampleFragPos == vec4(0);
 
-		if (sampleFragPos.z > samplePos.z + SSAO_BIAS) {
+		if (sampledInfinity || sampleFragPos.z > samplePos.z + SSAO_BIAS) {
 			samplesOccluded++;
 		}
 	}
@@ -61,13 +65,23 @@ void main() {
 	vec3 albedo = texture(u_albedo, texCoords).xyz;
 
 	mat3 tbn = tbnMatrix(normal, albedo);
-	vec3 ambientColor = AMBIENT_COLOR * ssaoFactor(position, tbn);
+	float ssaoFact = 1;
 
+	if (u_enableSSAO) {
+		ssaoFact = ssaoFactor(position, tbn);
+	}
+
+	if (!u_enableAlbedo) {
+		fragColor = vec4(ssaoFact);
+		return;
+	}
+
+	vec3 ambientColor = AMBIENT_COLOR * ssaoFact;
 	vec3 lightDir = normalize(u_lightPos - position);
 	float lamb = max(dot(lightDir, normal), 0.0);
 	
 	fragColor = vec4(lamb * albedo + ambientColor, 1.0);
-	fragColor = vec4(ssaoFactor(position, tbn));
+	// fragColor = vec4(ssaoFactor(position, tbn));
 
 
 	vec4 shadowCoords = (u_lightProjMat * u_lightViewMat * vec4(position, 1.0));
