@@ -40,16 +40,30 @@ public:
         CreateDepthBuffer(_gBuffer, depthBuffer);
     }
 
-    void geometryPass() {
+    template<typename TScene, typename TCamera>
+    void geometryPass(const TScene &scene, const TCamera &camera) {
         clear();
         GL_CHECK(glEnable(GL_DEPTH_TEST));
 		GL_CHECK(glViewport(0, 0, _screenWidth, _screenHeight));
 
+        _geometryShader.use();
         BindFramebuffer(_gBuffer);
 
+        _geometryShader.setMat4("u_viewMat", camera.getViewMatrix());
+        _geometryShader.setMat4("u_projMat", camera.getProjectionMatrix());
 
-        UnbindFramebuffer();
+        for (auto&& object : scene.getObjects()) {
+            auto data = object.getRenderData("");
+
+            _geometryShader.setMat4("u_modelMat", data.modelMat);
+            data.geometry.bind();
+            data.geometry.draw();
+        }
+
+        clear();
     }
+
+    
 
 private:
     int _screenWidth;
