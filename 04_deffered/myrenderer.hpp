@@ -3,6 +3,7 @@
 #include <glad/glad.h>
 #include <vector>
 
+#include "shader.h"
 #include "camera.hpp"
 #include "error_handling.hpp"
 #include "spotlight.hpp"
@@ -20,24 +21,34 @@ public:
     void init() {
         _quad = generateQuadTex();
 
-        CreateFramebuffer(_gBuffer);
-        GLuint gPosition, gNormal, gAlbedo;
+        _geometryShader = Shader("geometry.vs.glsl", "geometry.fs.glsl");
+        _ligthingShader = Shader("lighting.vs.glsl", "lighting.fs.glsl");
 
-        CreateColorAttachmentTex(gPosition, GL_RGBA, GL_RGBA, GL_FLOAT);
-        CreateColorAttachmentTex(gNormal, GL_RGBA32F, GL_RGBA, GL_FLOAT);
-        CreateColorAttachmentTex(gAlbedo, GL_RGBA32F, GL_RGBA, GL_FLOAT);
-        AttachTextures(_gBuffer, {gPosition, gNormal, gAlbedo});
+        CreateFramebuffer(_gBuffer);
+        CreateColorAttachmentTex(_gPosition, GL_RGBA, GL_RGBA, GL_FLOAT);
+        CreateColorAttachmentTex(_gNormal, GL_RGBA32F, GL_RGBA, GL_FLOAT);
+        CreateColorAttachmentTex(_gAlbedo, GL_RGBA32F, GL_RGBA, GL_FLOAT);
+        AttachTextures(_gBuffer, {_gPosition, _gNormal, _gAlbedo});
 
         CreateFramebuffer(_debugBuffer);
-        GLuint fb0, fb1, fb2, fb3;
-
-        CreateColorAttachmentTex(fb0, GL_RGBA32F, GL_RGBA, GL_FLOAT);
-        CreateColorAttachmentTex(fb1, GL_RGBA32F, GL_RGBA, GL_FLOAT);
-        CreateColorAttachmentTex(fb2, GL_RGBA32F, GL_RGBA, GL_FLOAT);
-        CreateColorAttachmentTex(fb3, GL_RGBA32F, GL_RGBA, GL_FLOAT);
-        AttachTextures(_debugBuffer, {fb0, fb1, fb2, fb3});
+        CreateColorAttachmentTex(_debugTex1, GL_RGBA32F, GL_RGBA, GL_FLOAT);
+        CreateColorAttachmentTex(_debugTex2, GL_RGBA32F, GL_RGBA, GL_FLOAT);
+        CreateColorAttachmentTex(_debugTex3, GL_RGBA32F, GL_RGBA, GL_FLOAT);
+        CreateColorAttachmentTex(_debugTex4, GL_RGBA32F, GL_RGBA, GL_FLOAT);
+        AttachTextures(_debugBuffer, {_debugTex1, _debugTex2, _debugTex3, _debugTex4});
 
         CreateDepthBuffer(_gBuffer, depthBuffer);
+    }
+
+    void geometryPass() {
+        clear();
+        GL_CHECK(glEnable(GL_DEPTH_TEST));
+		GL_CHECK(glViewport(0, 0, _screenWidth, _screenHeight));
+
+        BindFramebuffer(_gBuffer);
+
+
+        UnbindFramebuffer();
     }
 
 private:
@@ -48,9 +59,28 @@ private:
     IndexedBuffer _quad;
 
     GLuint _gBuffer, _debugBuffer, depthBuffer;
+    GLuint _gPosition, _gNormal, _gAlbedo;
+    GLuint _debugTex1, _debugTex2, _debugTex3, _debugTex4;
+    Shader _geometryShader, _ligthingShader;
+
+    ssao _ssao;
+
 
     void CreateFramebuffer(GLuint& buffer) {
         GL_CHECK(glGenBuffers(1, &buffer));
+    }
+
+    void BindFramebuffer(GLuint buffer) {
+        GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, buffer));
+    }
+
+    void UnbindFramebuffer() {
+        GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+    }
+
+    void BindShaderTexture(GLuint index, GLuint texture) {
+        GL_CHECK(glActiveTexture(GL_TEXTURE0 + index));
+        GL_CHECK(glBindTexture(GL_TEXTURE_2D, texture));
     }
 
     void CreateColorAttachmentTex(GLuint& attch, GLint internalFormat, GLint format, GLint type) {
@@ -71,7 +101,7 @@ private:
         GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
     }
 
-    void AttachTextures(GLuint& framebuffer, const std::vector<GLuint>& attachements) {
+    void AttachTextures(GLuint framebuffer, const std::vector<GLuint>& attachements) {
         GL_CHECK(glBindBuffer(GL_FRAMEBUFFER, framebuffer));
 
         for ( int i = 0; i < attachements.size(); ++i) {
@@ -91,5 +121,11 @@ private:
         GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, framebuffer));
         GL_CHECK(glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthBuffer));
         GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+    }
+
+    void clear() {
+		UnbindFramebuffer();
+		GL_CHECK(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
+		GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
     }
 };
