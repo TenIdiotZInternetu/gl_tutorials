@@ -12,7 +12,6 @@
 #include "camera.hpp"
 #include "spotlight.hpp"
 
-#include "scene_definition.hpp"
 #include "myrenderer.hpp"
 
 #include "ogl_geometry_factory.hpp"
