@@ -1,4 +1,5 @@
 #include <GL/gl.h>
+#include <algorithm>
 #include <array>
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/geometric.hpp>
@@ -15,7 +16,7 @@ public:
     ssao() : 
         _seed(std::random_device()()), 
         _rngGenerator(_seed),
-        _pointsDistribution(0, 0.3) 
+        _pointsDistribution(0, 0.4) 
     {
         _baseKernel = createSamplePoints();
     }
@@ -31,10 +32,12 @@ private:
         kernel_t points;
 
         for (int i = 0; i < SAMPLES_COUNT; ++i) {
+
+
             points[i] = {
                 _pointsDistribution(_rngGenerator),
                 _pointsDistribution(_rngGenerator),
-                std::abs(_pointsDistribution(_rngGenerator))
+                std::clamp(std::abs(_pointsDistribution(_rngGenerator)), 0.2f, 1.0f)
             };
         }
 

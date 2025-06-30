@@ -36,7 +36,7 @@ mat3 tbnMatrix(vec3 normal, vec3 randomVec) {
 }
 
 float ssaoFactor(vec3 position, mat3 tbn) {
-	int samplesOccluded = 0;
+	float samplesOccluded = 0;
 
 	// vec3 viewPos = (u_viewMat * vec4(position, 1)).xyz;
 
@@ -51,12 +51,13 @@ float ssaoFactor(vec3 position, mat3 tbn) {
 		vec4 sampleFragPos = texture(u_position, offset);
 		bool sampledInfinity = sampleFragPos == vec4(0);
 
-		if (sampledInfinity || sampleFragPos.z > samplePos.z + SSAO_BIAS) {
-			samplesOccluded++;
+		if (sampledInfinity || sampleFragPos.z > samplePos.z - SSAO_BIAS) {
+			float rangeCheck = smoothstep(0, 1, SSAO_RADIUS / abs(sampleFragPos.z - samplePointPos.z));
+			samplesOccluded += rangeCheck;
 		}
 	}
 
-	return 1 - float(samplesOccluded) / float(SSAO_COUNT);
+	return 1 - samplesOccluded / float(SSAO_COUNT);
 }
 
 void main() {
