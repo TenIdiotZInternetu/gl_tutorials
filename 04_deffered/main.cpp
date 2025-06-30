@@ -117,7 +117,9 @@ int main() {
 
 		window.runLoop([&] {
 			renderer.GeometryPass(cottageScene, camera);
-			renderer.LightingPass(light, camera);
+			renderer.SsaoPass(camera);
+			renderer.BlurPass();
+			renderer.LightingPass(light);
 		});
 	} catch (ShaderCompilationError &exc) {
 		std::cerr

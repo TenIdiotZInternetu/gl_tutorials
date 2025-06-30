@@ -1,6 +1,7 @@
 #version 430 core
 
 layout(location = 0) uniform sampler2D u_ssaoBuffer;
+layout(location = 10) uniform bool u_enableSSAO;
 
 in vec2 texCoords;
 
@@ -16,6 +17,11 @@ const float gaussian[KERNEL_SIZE] = {
 };
 
 void main() {
+    if (!u_enableSSAO) {
+        out_ssaoFactor = 1;
+        return;
+    }
+
     vec2 texelSize = 1.0 / vec2(textureSize(u_ssaoBuffer, 0));
     float sum = 0;
 

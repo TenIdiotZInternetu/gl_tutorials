@@ -84,6 +84,14 @@ public:
         CreateColorAttachmentTex(_gPosition, GL_RGBA32F, GL_RGBA, GL_FLOAT);
         AttachTextures(_gBuffer, {_gAlbedo, _gNormal, _gPosition});
 
+        CreateFramebuffer(_ssaoBuffer);
+        CreateColorAttachmentTex(_ssaoTex, GL_RED, GL_RED, GL_FLOAT);
+        AttachTextures(_ssaoBuffer, {_ssaoTex});
+
+        CreateFramebuffer(_blurBuffer);
+        CreateColorAttachmentTex(_blurredSsaoTex, GL_RED, GL_RED, GL_FLOAT);
+        AttachTextures(_blurBuffer, {_blurredSsaoTex});
+
         CreateFramebuffer(_debugBuffer);
         CreateColorAttachmentTex(_debugTex1, GL_RGBA32F, GL_RGBA, GL_FLOAT);
         CreateColorAttachmentTex(_debugTex2, GL_RGBA32F, GL_RGBA, GL_FLOAT);
@@ -119,8 +127,46 @@ public:
         UnbindFramebuffer();
     }
 
-    template<typename TLight, typename TCamera>
-    void LightingPass(const TLight& light, const TCamera& camera) {
+    template<typename TCamera>
+    void SsaoPass(const TCamera& camera) {
+        BindFramebuffer(_ssaoBuffer);
+        Clear();
+        GL_CHECK(glDisable(GL_DEPTH_TEST));
+
+        _ssaoShader.use();
+
+        BindShaderTexture(_ssaoShader, "u_normal", _gNormal);
+        BindShaderTexture(_ssaoShader, "u_position", _gPosition);
+        BindShaderTexture(_ssaoShader, "u_noise", _ssao.noiseTex());
+
+        // Pass SSAO samples
+        GLint location = glGetUniformLocation(_ssaoShader.ID, "u_ssaoSamples");
+		GL_CHECK(glUniform3fv(location, ssao::SAMPLES_COUNT, glm::value_ptr(_ssao.kernel()[0])));
+
+        _ssaoShader.setBool("u_enableSSAO", _renderSSAO);
+        _ssaoShader.setMat4("u_projMat", camera.getProjectionMatrix());
+        _ssaoShader.setVec2("u_noiseScale", glm::vec2(_screenWidth, _screenHeight) / (float)ssao::NOISE_SIZE);
+
+        RenderQuad();
+        UnbindFramebuffer();
+    }
+
+    void BlurPass() {
+        BindFramebuffer(_blurBuffer);
+        Clear();
+        GL_CHECK(glDisable(GL_DEPTH_TEST));
+
+        _blurShader.use();
+
+        BindShaderTexture(_blurShader, "u_ssaoBuffer", _ssaoTex);
+        _blurShader.setBool("u_enableSSAO", _renderSSAO);
+
+        RenderQuad();
+        UnbindFramebuffer();
+    }
+
+    template<typename TLight>
+    void LightingPass(const TLight& light) {
         // BindFramebuffer(_debugBuffer);
         Clear();
         GL_CHECK(glDisable(GL_DEPTH_TEST));
@@ -130,23 +176,12 @@ public:
         BindShaderTexture(_lightingShader, "u_albedo", _gAlbedo);
         BindShaderTexture(_lightingShader, "u_normal", _gNormal);
         BindShaderTexture(_lightingShader, "u_position", _gPosition);
-        BindShaderTexture(_lightingShader, "u_noise", _ssao.noiseTex());
+        BindShaderTexture(_lightingShader, "u_ssao", _blurredSsaoTex);
 
-        // Pass SSAO samples
-        GLint location = glGetUniformLocation(_lightingShader.ID, "u_ssaoSamples");
-		GL_CHECK(glUniform3fv(location, ssao::SAMPLES_COUNT, glm::value_ptr(_ssao.kernel()[0])));
-
-        _lightingShader.setVec2("u_noiseScale", glm::vec2(_screenWidth, _screenHeight) / (float)ssao::NOISE_SIZE);
-
+        _lightingShader.setBool("u_enableAlbedo", _renderAlbedo);
         _lightingShader.setVec3("u_lightPos", light.getPosition());
         _lightingShader.setMat4("u_lightViewMat", light.getViewMatrix());
         _lightingShader.setMat4("u_lightProjMat", light.getProjectionMatrix());
-
-        _lightingShader.setMat4("u_viewMat", camera.getViewMatrix());
-        _lightingShader.setMat4("u_projMat", camera.getProjectionMatrix());
-
-        _lightingShader.setBool("u_enableAlbedo", _renderAlbedo);
-        _lightingShader.setBool("u_enableSSAO", _renderSSAO);
 
         RenderQuad();
         UnbindFramebuffer();
@@ -167,8 +202,9 @@ private:
     int _attachementsCreated = 0;
     IndexedBuffer _quad;
 
-    GLuint _gBuffer, _debugBuffer, depthBuffer;
+    GLuint _gBuffer, _ssaoBuffer, _blurBuffer, _debugBuffer, depthBuffer;
     GLuint _gPosition, _gNormal, _gAlbedo;
+    GLuint _ssaoTex, _blurredSsaoTex;
     GLuint _debugTex1, _debugTex2, _debugTex3, _debugTex4;
     Shader _geometryShader, _ssaoShader, _blurShader, _lightingShader;
 

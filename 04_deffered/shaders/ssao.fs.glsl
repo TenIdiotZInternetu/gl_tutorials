@@ -10,9 +10,7 @@ layout(location = 3) uniform sampler2D u_noise;
 
 layout(location = 11) uniform bool u_enableSSAO;
 
-layout(location = 60) uniform mat4 u_viewMat;
 layout(location = 80) uniform mat4 u_projMat;
-
 layout(location = 100) uniform vec2 u_noiseScale;
 layout(location = 128) uniform vec3 u_ssaoSamples[SSAO_COUNT];
 
