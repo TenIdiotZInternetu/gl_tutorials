@@ -6,7 +6,6 @@ const float SSAO_BIAS = 0.02;
 
 layout(location = 1) uniform sampler2D u_normal;
 layout(location = 2) uniform sampler2D u_position;
-layout(location = 3) uniform sampler2D u_noise;
 
 layout(location = 11) uniform bool u_enableSSAO;
 
@@ -19,10 +18,7 @@ in vec2 texCoords;
 out float out_ssaoBuffer;
 
 
-mat3 tbnMatrix() {
-	vec3 randomVec = texture(u_noise, texCoords * u_noiseScale).xyz;
-
-    vec3 normal = texture(u_normal, texCoords).xyz;
+mat3 tbnMatrix(vec3 normal, vec3 randomVec) {
 	vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
 	vec3 bitangent = cross(normal, tangent);
 
@@ -36,7 +32,9 @@ void main() {
     }
     
     vec3 position = texture(u_position, texCoords).xyz;
-    mat3 tbn = tbnMatrix();
+    vec3 normal = texture(u_normal, texCoords).xyz;
+
+    mat3 tbn = tbnMatrix(normal, normalize(cross(normal, u_projMat[0].xyz)));
 
     float samplesOccluded = 0;
 

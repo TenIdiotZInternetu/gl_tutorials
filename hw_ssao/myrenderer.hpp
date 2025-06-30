@@ -137,7 +137,6 @@ public:
 
         BindShaderTexture(_ssaoShader, "u_normal", _gNormal);
         BindShaderTexture(_ssaoShader, "u_position", _gPosition);
-        BindShaderTexture(_ssaoShader, "u_noise", _ssao.noiseTex());
 
         // Pass SSAO samples
         GLint location = glGetUniformLocation(_ssaoShader.ID, "u_ssaoSamples");
@@ -145,7 +144,6 @@ public:
 
         _ssaoShader.setBool("u_enableSSAO", _renderSSAO);
         _ssaoShader.setMat4("u_projMat", camera.getProjectionMatrix());
-        _ssaoShader.setVec2("u_noiseScale", glm::vec2(_screenWidth, _screenHeight) / (float)ssao::NOISE_SIZE);
 
         RenderQuad();
         UnbindFramebuffer();
