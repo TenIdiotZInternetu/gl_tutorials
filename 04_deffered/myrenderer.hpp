@@ -128,10 +128,13 @@ public:
         BindShaderTexture(_lightingShader, "u_albedo", _gAlbedo);
         BindShaderTexture(_lightingShader, "u_normal", _gNormal);
         BindShaderTexture(_lightingShader, "u_position", _gPosition);
+        BindShaderTexture(_lightingShader, "u_noise", _ssao.noiseTex());
 
         // Pass SSAO samples
         GLint location = glGetUniformLocation(_lightingShader.ID, "u_ssaoSamples");
 		GL_CHECK(glUniform3fv(location, ssao::SAMPLES_COUNT, glm::value_ptr(_ssao.kernel()[0])));
+
+        _lightingShader.setVec2("u_noiseScale", glm::vec2(_screenWidth, _screenHeight) / (float)ssao::NOISE_SIZE);
 
         _lightingShader.setVec3("u_lightPos", light.getPosition());
         _lightingShader.setMat4("u_lightViewMat", light.getViewMatrix());

@@ -8,6 +8,7 @@ const vec3 AMBIENT_COLOR = vec3(0.1, 0.1, 0.2);
 layout(location = 0) uniform sampler2D u_albedo;
 layout(location = 1) uniform sampler2D u_normal;
 layout(location = 2) uniform sampler2D u_position;
+layout(location = 3) uniform sampler2D u_noise;
 
 layout(location = 15) uniform vec3 u_lightPos;
 layout(location = 20) uniform mat4 u_lightViewMat;
@@ -15,6 +16,8 @@ layout(location = 40) uniform mat4 u_lightProjMat;
 
 layout(location = 60) uniform mat4 u_viewMat;
 layout(location = 80) uniform mat4 u_projMat;
+
+layout(location = 100) uniform vec2 u_noiseScale;
 layout(location = 128) uniform vec3 u_ssaoSamples[SSAO_COUNT];
 
 layout(location = 10) uniform bool u_enableAlbedo;
@@ -23,13 +26,14 @@ layout(location = 11) uniform bool u_enableSSAO;
 in vec2 texCoords;
 
 // out vec4 fb1;
-// out vec3 fb2;
-// out vec3 fb3;
+// out vec4 fb2;
+// out vec4 fb3;
 // out vec4 fb4;
 out vec4 fragColor;
 
 // randomVec determines rotation of the base around Z axis => rotation of the ssao kernel
-mat3 tbnMatrix(vec3 normal, vec3 randomVec) {
+mat3 tbnMatrix(vec3 normal) {
+	vec3 randomVec = texture(u_noise, texCoords * u_noiseScale).xyz;
 	vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
 	vec3 bitangent = cross(normal, tangent);
 	return mat3(tangent, bitangent, normal);
@@ -38,9 +42,13 @@ mat3 tbnMatrix(vec3 normal, vec3 randomVec) {
 float ssaoFactor(vec3 position, mat3 tbn) {
 	float samplesOccluded = 0;
 
-	// vec3 viewPos = (u_viewMat * vec4(position, 1)).xyz;
-
 	for (int i = 0; i < SSAO_COUNT; ++i) {
+		bool pointInInfinity = position == vec3(0);
+		if (pointInInfinity) {
+			samplesOccluded++;
+			continue;
+		}
+
 		vec3 samplePos = position + tbn * u_ssaoSamples[i] * SSAO_RADIUS;
 		vec4 samplePointPos = vec4(samplePos, 1);
 
@@ -49,9 +57,11 @@ float ssaoFactor(vec3 position, mat3 tbn) {
 		vec2 offset = projectedSample.xy * 0.5 + 0.5;
 
 		vec4 sampleFragPos = texture(u_position, offset);
-		bool sampledInfinity = sampleFragPos == vec4(0);
+		// fb1 = sampleFragPos;
+		// fb2 = samplePointPos;
+		// fb3 = vec4(tbn * u_ssaoSamples[i], 1);
 
-		if (sampledInfinity || sampleFragPos.z > samplePos.z - SSAO_BIAS) {
+		if (sampleFragPos.z > samplePos.z - SSAO_BIAS) {
 			float rangeCheck = smoothstep(0, 1, SSAO_RADIUS / abs(sampleFragPos.z - samplePointPos.z));
 			samplesOccluded += rangeCheck;
 		}
@@ -65,7 +75,7 @@ void main() {
 	vec3 normal = texture(u_normal, texCoords).xyz;
 	vec3 albedo = texture(u_albedo, texCoords).xyz;
 
-	mat3 tbn = tbnMatrix(normal, albedo);
+	mat3 tbn = tbnMatrix(normal);
 	float ssaoFact = 1;
 
 	if (u_enableSSAO) {
