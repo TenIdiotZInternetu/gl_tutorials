@@ -8,10 +8,10 @@
             "name": "cppdbg",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/04_deffered/04_deffered",
+            "program": "${workspaceFolder}/build/hw_ssao/hw_ssao",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build/04_deffered",
+            "cwd": "${workspaceFolder}/build/hw_ssao",
             "environment": [],
             "MIMode": "gdb",
             "setupCommands": [
