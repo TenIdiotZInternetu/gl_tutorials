@@ -5,7 +5,6 @@ project(hw_ssao)
 
 add_executable(hw_ssao 
 	main.cpp
-	scene_definition.hpp
 	myrenderer.hpp
 	shader.h
 	ssao.hpp
