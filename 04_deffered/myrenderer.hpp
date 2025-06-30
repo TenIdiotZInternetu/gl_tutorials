@@ -66,7 +66,9 @@ class MyRenderer {
 public:
     MyRenderer(int screenWidth, int screenHeight) :
         _geometryShader("./shaders/geometry.vs.glsl", "./shaders/geometry.fs.glsl"),
-        _lightingShader("./shaders/lighting.vs.glsl", "./shaders/lighting.fs.glsl"),
+        _ssaoShader("./shaders/pass.vs.glsl", "./shaders/ssao.fs.glsl"),
+        _blurShader("./shaders/pass.vs.glsl", "./shaders/blur.fs.glsl"),
+        _lightingShader("./shaders/pass.vs.glsl", "./shaders/lighting.fs.glsl"),
         _quad(generateQuadTex())
     {
         Resize(screenWidth, screenHeight);
@@ -168,7 +170,7 @@ private:
     GLuint _gBuffer, _debugBuffer, depthBuffer;
     GLuint _gPosition, _gNormal, _gAlbedo;
     GLuint _debugTex1, _debugTex2, _debugTex3, _debugTex4;
-    Shader _geometryShader, _lightingShader;
+    Shader _geometryShader, _ssaoShader, _blurShader, _lightingShader;
 
     ssao _ssao;
 
